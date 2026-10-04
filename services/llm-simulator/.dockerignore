@@ -1,0 +1,18 @@
+# Keep the build context (and image) small and production-clean.
+.venv/
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Dev-only files not needed at runtime.
+test_app.py
+requirements-dev.txt
+pyproject.toml
+.dockerignore
+.git/
+.gitignore
+*.md

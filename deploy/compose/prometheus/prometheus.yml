@@ -1,0 +1,13 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+scrape_configs:
+  # Scrape the GenAI metrics that the custom connector exposes via the
+  # collector's prometheus exporter.
+  - job_name: otelcol-genai
+    static_configs:
+      - targets: ["collector:8889"]
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]

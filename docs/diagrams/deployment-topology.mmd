@@ -1,0 +1,34 @@
+%% Local deployment topology. The same components run under Docker Compose or
+%% on Kubernetes (kind) via Kustomize overlays or the Helm chart.
+flowchart TB
+    subgraph host["Local host (Docker Compose / kind)"]
+        direction TB
+        subgraph svcs["Demo services"]
+            api["api :8080"]
+            worker["worker :8081"]
+            db["db-adapter :8082"]
+            llm["llm-simulator :8083"]
+        end
+        subgraph collector["otelcol-genai"]
+            c["OTLP :4318 · genaievents :8099<br/>prometheus :8889 · health :13133"]
+        end
+        subgraph backends["Backends"]
+            j["jaeger :16686"]
+            p["prometheus :9090"]
+            l["loki :3100"]
+            g["grafana :3000"]
+        end
+    end
+
+    api --> worker --> db
+    worker --> llm
+    svcs -. OTLP .-> c
+    c -- traces --> j
+    c -- metrics --> p
+    c -- logs --> l
+    j --> g
+    p --> g
+    l --> g
+
+    classDef custom fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#111;
+    class c custom;

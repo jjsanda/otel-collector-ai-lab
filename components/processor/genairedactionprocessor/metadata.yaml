@@ -1,0 +1,16 @@
+type: genairedaction
+
+status:
+  class: processor
+  stability:
+    beta: [traces, logs]
+  distributions: [otelcol-genai]
+  codeowners:
+    active: [jjsanda]
+
+# Sanitizes and enriches GenAI (gen_ai.*) telemetry:
+#   - redacts prompt/response content (mask | hash | delete)
+#   - scrubs PII (email, card, SSN, API keys) from remaining string values
+#   - normalizes deprecated gen_ai.system -> gen_ai.provider.name
+#   - derives gen_ai.usage.cost_usd from token usage
+#   - stamps deployment.environment

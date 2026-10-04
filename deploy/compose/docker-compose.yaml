@@ -1,0 +1,149 @@
+# Local stack for otel-collector-ai-lab.
+#
+#   docker compose up -d --build              # full stack: collector + backends + services
+#   docker compose --profile load up -d       # also run a small load generator
+#
+# Per-service mem_limits keep the whole stack lean (~1.7 GiB of limits, far less
+# in practice). NOTE: Grafana runs with anonymous admin for a friction-free local
+# demo — do not expose port 3000 beyond localhost.
+name: otel-genai-lab
+
+services:
+  # ---- Custom collector distribution ----
+  collector:
+    build:
+      context: ../..
+      dockerfile: collector/Dockerfile
+    image: otel-genai/collector
+    command: ["--config", "/etc/otelcol/collector.yaml"]
+    volumes:
+      - ../../collector/config:/etc/otelcol:ro
+    ports:
+      - "4318:4318"   # OTLP/HTTP in
+      - "8099:8099"   # custom GenAI events receiver
+      - "8889:8889"   # prometheus exporter
+      - "13133:13133" # health_check
+    mem_limit: 400m
+    restart: unless-stopped
+
+  # ---- Backends ----
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    environment:
+      COLLECTOR_OTLP_ENABLED: "true"
+    ports:
+      - "16686:16686" # UI
+    mem_limit: 300m
+    restart: unless-stopped
+
+  prometheus:
+    image: prom/prometheus:v3.1.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=1h
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+    mem_limit: 300m
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:11.4.0
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Admin"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_USERS_DEFAULT_THEME: "light"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    mem_limit: 220m
+    restart: unless-stopped
+
+  loki:
+    image: grafana/loki:3.3.0
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+    ports:
+      - "3100:3100"
+    mem_limit: 220m
+    restart: unless-stopped
+
+  # ---- Demo services ----
+  api:
+    build:
+      context: ../..
+      dockerfile: services/api/Dockerfile
+    image: otel-genai/api
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_SERVICE_NAME: "api"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=dev"
+      WORKER_URL: "http://worker:8081"
+    ports:
+      - "8080:8080"
+    depends_on: [worker, collector]
+    mem_limit: 80m
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ../..
+      dockerfile: services/worker/Dockerfile
+    image: otel-genai/worker
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_SERVICE_NAME: "worker"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=dev"
+      DB_ADAPTER_URL: "http://db-adapter:8082"
+      LLM_SIMULATOR_URL: "http://llm-simulator:8083"
+    depends_on: [db-adapter, llm-simulator, collector]
+    mem_limit: 80m
+    restart: unless-stopped
+
+  db-adapter:
+    build:
+      context: ../../services/db-adapter
+    image: otel-genai/db-adapter
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_SERVICE_NAME: "db-adapter"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=dev"
+      PORT: "8082"
+    depends_on: [collector]
+    mem_limit: 150m
+    restart: unless-stopped
+
+  llm-simulator:
+    build:
+      context: ../../services/llm-simulator
+    image: otel-genai/llm-simulator
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: "http://collector:4318"
+      OTEL_EXPORTER_OTLP_PROTOCOL: "http/protobuf"
+      OTEL_SERVICE_NAME: "llm-simulator"
+      OTEL_RESOURCE_ATTRIBUTES: "deployment.environment=dev"
+      PORT: "8083"
+    depends_on: [collector]
+    mem_limit: 180m
+    restart: unless-stopped
+
+  # ---- Optional load generator (profile: load) ----
+  loadgen:
+    image: curlimages/curl:8.11.1
+    profiles: ["load"]
+    depends_on: [api]
+    entrypoint:
+      - sh
+      - -c
+      - "while true; do curl -s -o /dev/null http://api:8080/ || true; sleep 0.3; done"
+    mem_limit: 32m
+    restart: unless-stopped

@@ -1,0 +1,19 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: otel-genai
+
+resources:
+  - ../../base
+
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: otel-genai-lab
+      app.kubernetes.io/managed-by: kustomize
+
+images:
+  - { name: otel-genai/collector, newTag: latest }
+  - { name: otel-genai/api, newTag: latest }
+  - { name: otel-genai/worker, newTag: latest }
+  - { name: otel-genai/db-adapter, newTag: latest }
+  - { name: otel-genai/llm-simulator, newTag: latest }

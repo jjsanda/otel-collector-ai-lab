@@ -1,0 +1,78 @@
+# Full otelcol-genai pipeline used by the Docker Compose and Kubernetes stacks.
+#
+#   traces  : otlp + genaievents -> memory_limiter, genairedaction, batch
+#             -> Jaeger (OTLP) + genaimetrics connector + debug
+#   metrics : otlp + genaimetrics -> memory_limiter, batch -> Prometheus
+#   logs    : otlp            -> memory_limiter, genairedaction, batch -> Loki (OTLP)
+#
+# Endpoints assume the Compose service names; override with env in other envs.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+  # Bespoke GenAI-event ingestion endpoint (custom receiver).
+  genaievents:
+    endpoint: 0.0.0.0:8099
+    path: /v1/genai-events
+
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 256
+    spike_limit_mib: 64
+  batch:
+    send_batch_size: 512
+    timeout: 2s
+  # Sanitize + enrich GenAI telemetry (custom processor).
+  genairedaction:
+    mode: mask
+    mask_string: "[REDACTED]"
+    normalize_provider: true
+    environment: dev
+
+connectors:
+  # Derive GenAI metrics from spans (custom connector).
+  genaimetrics:
+    namespace: ""
+
+exporters:
+  debug:
+    verbosity: normal
+  otlphttp/jaeger:
+    endpoint: http://jaeger:4318
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+  prometheus:
+    endpoint: 0.0.0.0:8889
+    resource_to_telemetry_conversion:
+      enabled: true
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  zpages:
+    endpoint: 0.0.0.0:55679
+
+service:
+  extensions: [health_check, zpages]
+  pipelines:
+    traces:
+      receivers: [otlp, genaievents]
+      processors: [memory_limiter, genairedaction, batch]
+      exporters: [otlphttp/jaeger, genaimetrics, debug]
+    metrics:
+      receivers: [otlp, genaimetrics]
+      processors: [memory_limiter, batch]
+      exporters: [prometheus, debug]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, genairedaction, batch]
+      exporters: [otlphttp/loki, debug]
+  telemetry:
+    logs:
+      level: info
+    metrics:
+      level: detailed

@@ -1,0 +1,27 @@
+%% One request produces a single distributed trace spanning all four services.
+sequenceDiagram
+    autonumber
+    actor U as User
+    participant A as API (Go)
+    participant W as Worker (Go)
+    participant D as DB adapter (Node)
+    participant L as LLM simulator (Python)
+    participant C as otelcol-genai
+
+    U->>A: POST /chat { prompt }
+    A->>W: POST /process (W3C traceparent)
+    par fan-out (concurrent)
+        W->>D: POST /query
+        D-->>W: rows
+    and
+        W->>L: POST /generate
+        L-->>W: text + tokens
+    end
+    W-->>A: answer, model, tokens, rows
+    A-->>U: 200 { answer, trace_id }
+
+    Note over A,L: every service exports OTLP → collector
+    A-->>C: spans / metrics / logs
+    D-->>C: spans / metrics / logs
+    L-->>C: gen_ai spans (prompt + response, sensitive)
+    Note over C: redact prompt/response,<br/>derive token & cost metrics

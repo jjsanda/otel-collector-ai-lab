@@ -1,0 +1,16 @@
+type: genaimetrics
+
+status:
+  class: connector
+  stability:
+    beta: [traces_to_metrics]
+  distributions: [otelcol-genai]
+  codeowners:
+    active: [jjsanda]
+
+# Derives cumulative GenAI metrics from trace spans, keyed by provider, model,
+# and operation:
+#   - gen_ai.client.operation.count    (Sum)
+#   - gen_ai.client.operation.duration (Histogram, seconds)
+#   - gen_ai.client.token.usage        (Histogram, by gen_ai.token.type)
+#   - gen_ai.client.cost.usd           (Sum, estimated from token usage)

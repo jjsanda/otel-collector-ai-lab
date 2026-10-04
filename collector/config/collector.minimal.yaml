@@ -1,0 +1,24 @@
+# Minimal pipeline used to smoke-test the otelcol-genai build (Phase A):
+# OTLP in -> genairedaction + batch -> debug out.
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  genairedaction: {}
+  batch: {}
+
+exporters:
+  debug:
+    verbosity: detailed
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [genairedaction, batch]
+      exporters: [debug]

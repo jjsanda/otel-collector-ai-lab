@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "otel-genai-collector.fullname" . }}-config
+  labels:
+    {{- include "otel-genai-collector.labels" . | nindent 4 }}
+data:
+  collector.yaml: |
+{{- (.Values.config | default (.Files.Get "files/collector.yaml")) | nindent 4 }}

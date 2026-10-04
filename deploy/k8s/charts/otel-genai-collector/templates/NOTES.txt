@@ -1,0 +1,15 @@
+otelcol-genai has been deployed as release {{ .Release.Name }}.
+
+Service: {{ include "otel-genai-collector.fullname" . }} (type {{ .Values.service.type }})
+
+Send OTLP to it from in-cluster workloads:
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://{{ include "otel-genai-collector.fullname" . }}:{{ .Values.service.ports.otlpHttp }}
+
+Scrape the derived GenAI metrics:
+  kubectl port-forward svc/{{ include "otel-genai-collector.fullname" . }} {{ .Values.service.ports.prometheus }}:{{ .Values.service.ports.prometheus }}
+  curl localhost:{{ .Values.service.ports.prometheus }}/metrics | grep gen_ai_
+
+Post a bespoke GenAI event to the custom receiver:
+  kubectl port-forward svc/{{ include "otel-genai-collector.fullname" . }} {{ .Values.service.ports.genaiEvents }}:{{ .Values.service.ports.genaiEvents }}
+  curl -XPOST localhost:{{ .Values.service.ports.genaiEvents }}/v1/genai-events \
+    -d '{"provider":"openai","model":"gpt-4o-mini","operation":"chat","input":"hi","output":"hello","input_tokens":5,"output_tokens":3}'

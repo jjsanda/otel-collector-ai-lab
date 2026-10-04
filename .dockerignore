@@ -1,0 +1,10 @@
+.git/
+collector/_build/
+**/node_modules/
+**/dist/
+**/.venv/
+**/__pycache__/
+**/*.test
+docs/
+load/
+*.md

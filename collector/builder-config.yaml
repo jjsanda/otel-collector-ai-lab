@@ -1,0 +1,51 @@
+# OpenTelemetry Collector Builder (ocb) manifest for the otelcol-genai
+# distribution. Build with:  make collector   (runs: GOWORK=off builder --config ...)
+#
+# Version policy:
+#   - core beta + contrib components: v0.155.0
+#   - core stable modules (confmap providers): v1.61.0
+#   - local custom components: referenced by a published-looking module path and
+#     redirected to ./components via the per-entry `path:` field (no remote fetch).
+dist:
+  module: github.com/jjsanda/otel-collector-ai-lab/collector
+  name: otelcol-genai
+  description: GenAI-aware OpenTelemetry Collector (lab distribution)
+  output_path: ./collector/_build
+  version: "0.1.0"
+
+receivers:
+  - gomod: go.opentelemetry.io/collector/receiver/otlpreceiver v0.155.0
+  # Local custom component — ingests bespoke GenAI-event JSON over HTTP.
+  - gomod: github.com/jjsanda/otel-collector-ai-lab/components v0.1.0
+    import: github.com/jjsanda/otel-collector-ai-lab/components/receiver/genaieventsreceiver
+    name: genaieventsreceiver
+    path: ./components
+
+processors:
+  - gomod: go.opentelemetry.io/collector/processor/batchprocessor v0.155.0
+  - gomod: go.opentelemetry.io/collector/processor/memorylimiterprocessor v0.155.0
+  # Local custom component — sanitizes/enriches gen_ai.* attributes.
+  - gomod: github.com/jjsanda/otel-collector-ai-lab/components v0.1.0
+    import: github.com/jjsanda/otel-collector-ai-lab/components/processor/genairedactionprocessor
+    name: genairedactionprocessor
+    path: ./components
+
+connectors:
+  # Local custom component — derives GenAI metrics from trace spans.
+  - gomod: github.com/jjsanda/otel-collector-ai-lab/components v0.1.0
+    import: github.com/jjsanda/otel-collector-ai-lab/components/connector/genaimetricsconnector
+    name: genaimetricsconnector
+    path: ./components
+
+exporters:
+  - gomod: go.opentelemetry.io/collector/exporter/debugexporter v0.155.0
+  - gomod: go.opentelemetry.io/collector/exporter/otlphttpexporter v0.155.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/exporter/prometheusexporter v0.155.0
+
+extensions:
+  - gomod: go.opentelemetry.io/collector/extension/zpagesextension v0.155.0
+  - gomod: github.com/open-telemetry/opentelemetry-collector-contrib/extension/healthcheckextension v0.155.0
+
+providers:
+  - gomod: go.opentelemetry.io/collector/confmap/provider/envprovider v1.61.0
+  - gomod: go.opentelemetry.io/collector/confmap/provider/fileprovider v1.61.0

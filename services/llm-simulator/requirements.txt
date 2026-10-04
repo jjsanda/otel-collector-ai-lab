@@ -1,0 +1,21 @@
+# Runtime dependencies for the llm-simulator service.
+# Pinned to a known-good, mutually compatible set (resolved 2026, Python 3.12).
+# Lint/test tooling lives in requirements-dev.txt.
+
+# --- web framework / server ---
+fastapi==0.138.2
+uvicorn[standard]==0.49.0
+pydantic==2.13.4
+
+# --- HTTP client (used by the optional real-provider mode + OTLP http exporter) ---
+requests==2.34.2
+
+# --- OpenTelemetry: API/SDK, OTLP http/protobuf exporter, zero-code distro ---
+opentelemetry-api==1.43.0
+opentelemetry-sdk==1.43.0
+opentelemetry-distro==0.64b0
+opentelemetry-exporter-otlp-proto-http==1.43.0
+
+# --- OpenTelemetry auto-instrumentation (loaded by `opentelemetry-instrument`) ---
+opentelemetry-instrumentation-fastapi==0.64b0
+opentelemetry-instrumentation-requests==0.64b0

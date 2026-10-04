@@ -1,0 +1,195 @@
+# The four demo services. Each exports OTLP to the collector Service and is
+# probed on /healthz. Images are built locally and loaded into kind
+# (imagePullPolicy: IfNotPresent), so no registry is required.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  labels: { app.kubernetes.io/name: api }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: api }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: api }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: api
+          image: otel-genai/api:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          ports: [{ containerPort: 8080 }]
+          env:
+            - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://collector:4318" }
+            - { name: OTEL_EXPORTER_OTLP_PROTOCOL, value: "http/protobuf" }
+            - { name: OTEL_SERVICE_NAME, value: "api" }
+            - { name: OTEL_RESOURCE_ATTRIBUTES, value: "deployment.environment=kind" }
+            - { name: WORKER_URL, value: "http://worker:8081" }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8080 }
+            initialDelaySeconds: 3
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: api
+  labels: { app.kubernetes.io/name: api }
+spec:
+  selector: { app.kubernetes.io/name: api }
+  ports: [{ port: 8080, targetPort: 8080 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  labels: { app.kubernetes.io/name: worker }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: worker }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: worker }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: worker
+          image: otel-genai/worker:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          ports: [{ containerPort: 8081 }]
+          env:
+            - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://collector:4318" }
+            - { name: OTEL_EXPORTER_OTLP_PROTOCOL, value: "http/protobuf" }
+            - { name: OTEL_SERVICE_NAME, value: "worker" }
+            - { name: OTEL_RESOURCE_ATTRIBUTES, value: "deployment.environment=kind" }
+            - { name: DB_ADAPTER_URL, value: "http://db-adapter:8082" }
+            - { name: LLM_SIMULATOR_URL, value: "http://llm-simulator:8083" }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8081 }
+            initialDelaySeconds: 3
+          resources:
+            requests: { cpu: 25m, memory: 32Mi }
+            limits: { cpu: 200m, memory: 96Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: worker
+  labels: { app.kubernetes.io/name: worker }
+spec:
+  selector: { app.kubernetes.io/name: worker }
+  ports: [{ port: 8081, targetPort: 8081 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-adapter
+  labels: { app.kubernetes.io/name: db-adapter }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: db-adapter }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: db-adapter }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: db-adapter
+          image: otel-genai/db-adapter:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          ports: [{ containerPort: 8082 }]
+          env:
+            - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://collector:4318" }
+            - { name: OTEL_EXPORTER_OTLP_PROTOCOL, value: "http/protobuf" }
+            - { name: OTEL_SERVICE_NAME, value: "db-adapter" }
+            - { name: OTEL_RESOURCE_ATTRIBUTES, value: "deployment.environment=kind" }
+            - { name: PORT, value: "8082" }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8082 }
+            initialDelaySeconds: 3
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits: { cpu: 200m, memory: 150Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: db-adapter
+  labels: { app.kubernetes.io/name: db-adapter }
+spec:
+  selector: { app.kubernetes.io/name: db-adapter }
+  ports: [{ port: 8082, targetPort: 8082 }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-simulator
+  labels: { app.kubernetes.io/name: llm-simulator }
+spec:
+  replicas: 1
+  selector:
+    matchLabels: { app.kubernetes.io/name: llm-simulator }
+  template:
+    metadata:
+      labels: { app.kubernetes.io/name: llm-simulator }
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: llm-simulator
+          image: otel-genai/llm-simulator:latest
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: [ALL]
+          ports: [{ containerPort: 8083 }]
+          env:
+            - { name: OTEL_EXPORTER_OTLP_ENDPOINT, value: "http://collector:4318" }
+            - { name: OTEL_EXPORTER_OTLP_PROTOCOL, value: "http/protobuf" }
+            - { name: OTEL_SERVICE_NAME, value: "llm-simulator" }
+            - { name: OTEL_RESOURCE_ATTRIBUTES, value: "deployment.environment=kind" }
+            - { name: PORT, value: "8083" }
+          readinessProbe:
+            httpGet: { path: /healthz, port: 8083 }
+            initialDelaySeconds: 3
+          resources:
+            requests: { cpu: 25m, memory: 64Mi }
+            limits: { cpu: 250m, memory: 180Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-simulator
+  labels: { app.kubernetes.io/name: llm-simulator }
+spec:
+  selector: { app.kubernetes.io/name: llm-simulator }
+  ports: [{ port: 8083, targetPort: 8083 }]

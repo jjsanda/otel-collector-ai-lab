@@ -1,0 +1,33 @@
+replicaCount: 1
+
+image:
+  repository: otel-genai/collector
+  tag: latest
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+service:
+  type: ClusterIP
+  ports:
+    otlpGrpc: 4317
+    otlpHttp: 4318
+    prometheus: 8889
+    genaiEvents: 8099
+    health: 13133
+
+podAnnotations:
+  prometheus.io/scrape: "true"
+  prometheus.io/port: "8889"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 384Mi
+
+# Inline collector config. When empty, the chart's files/collector.yaml is used.
+config: ""

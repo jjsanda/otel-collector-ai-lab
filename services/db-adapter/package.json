@@ -1,0 +1,42 @@
+{
+  "name": "db-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Tiny OpenTelemetry-instrumented database adapter for the otel-collector-ai-lab demo. Called over HTTP by the Go worker service; emits traces, metrics, and logs via OTLP http/protobuf.",
+  "license": "Apache-2.0",
+  "type": "commonjs",
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=20.6.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node --require ./dist/instrumentation.js ./dist/server.js",
+    "dev": "node --require tsx/cjs --require ./src/instrumentation.ts ./src/server.ts",
+    "lint": "eslint .",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "1.9.1",
+    "@opentelemetry/api-logs": "0.219.0",
+    "@opentelemetry/auto-instrumentations-node": "0.77.0",
+    "@opentelemetry/exporter-logs-otlp-proto": "0.219.0",
+    "@opentelemetry/exporter-metrics-otlp-proto": "0.219.0",
+    "@opentelemetry/exporter-trace-otlp-proto": "0.219.0",
+    "@opentelemetry/resources": "2.8.0",
+    "@opentelemetry/sdk-logs": "0.219.0",
+    "@opentelemetry/sdk-metrics": "2.8.0",
+    "@opentelemetry/sdk-node": "0.219.0",
+    "express": "5.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@types/express": "5.0.6",
+    "@types/node": "26.0.1",
+    "eslint": "10.6.0",
+    "tsx": "4.22.4",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.62.1",
+    "vitest": "4.1.9"
+  }
+}

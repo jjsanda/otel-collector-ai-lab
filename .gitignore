@@ -1,0 +1,53 @@
+# --- ocb-generated collector distribution (rebuild with `make collector`) ---
+/collector/_build/
+
+# --- Go ---
+*.exe
+*.test
+*.out
+coverage.txt
+vendor/
+
+# Binaries written by `go build ./...` (`make build-go`) into each main package
+# dir. Anchored on purpose: each binary shares its name with its directory, so
+# a bare `api` / `worker` rule would also hide the service source.
+/services/api/api
+/services/worker/worker
+
+# --- Node ---
+node_modules/
+services/db-adapter/dist/
+npm-debug.log*
+
+# --- Python ---
+.venv/
+venv/
+__pycache__/
+*.py[co]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Logs ---
+*.log
+
+# --- Tooling / local ---
+.env
+.env.*
+!.env.example
+*.local
+bin/
+
+# --- Editors / OS ---
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Playwright browser cache used only for screenshot capture
+/.cache/ms-playwright/
+
+# NOTE: rendered diagrams (docs/diagrams/rendered/) and screenshots
+# (docs/screenshots/) ARE committed — they are referenced by the README.

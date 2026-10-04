@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "otel-genai-collector.fullname" . }}
+  labels:
+    {{- include "otel-genai-collector.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "otel-genai-collector.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "otel-genai-collector.selectorLabels" . | nindent 8 }}
+      annotations:
+        {{- toYaml .Values.podAnnotations | nindent 8 }}
+        checksum/config: {{ (.Values.config | default (.Files.Get "files/collector.yaml")) | sha256sum }}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: collector
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args: ["--config", "/etc/otelcol/collector.yaml"]
+          ports:
+            - { name: otlp-grpc, containerPort: {{ .Values.service.ports.otlpGrpc }} }
+            - { name: otlp-http, containerPort: {{ .Values.service.ports.otlpHttp }} }
+            - { name: prom, containerPort: {{ .Values.service.ports.prometheus }} }
+            - { name: genaievents, containerPort: {{ .Values.service.ports.genaiEvents }} }
+            - { name: health, containerPort: {{ .Values.service.ports.health }} }
+          volumeMounts:
+            - { name: config, mountPath: /etc/otelcol }
+          livenessProbe:
+            httpGet: { path: /, port: {{ .Values.service.ports.health }} }
+            initialDelaySeconds: 5
+          readinessProbe:
+            httpGet: { path: /, port: {{ .Values.service.ports.health }} }
+            initialDelaySeconds: 5
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: [ALL]
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "otel-genai-collector.fullname" . }}-config

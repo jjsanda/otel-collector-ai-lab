@@ -1,0 +1,51 @@
+%% High-level architecture of otel-collector-ai-lab.
+%% Orange = custom Go components built for this project.
+flowchart LR
+    user([User / load generator])
+
+    subgraph app["Demo application (polyglot, distributed)"]
+        direction TB
+        api["API service<br/>(Go)"]
+        worker["Worker<br/>(Go)"]
+        db["DB adapter<br/>(Node.js)"]
+        llm["LLM simulator<br/>(Python)"]
+    end
+
+    subgraph col["otelcol-genai — custom OpenTelemetry Collector"]
+        direction TB
+        recv["Receivers:<br/>OTLP + genaievents*"]
+        proc["Processor:<br/>genairedaction*<br/>(redact + enrich)"]
+        conn["Connector:<br/>genaimetrics*<br/>(spans → metrics)"]
+        exp["Exporters"]
+    end
+
+    subgraph back["Observability backends"]
+        direction TB
+        jaeger[("Jaeger<br/>traces")]
+        prom[("Prometheus<br/>metrics")]
+        loki[("Loki<br/>logs")]
+        graf["Grafana<br/>dashboards"]
+    end
+
+    user --> api --> worker
+    worker --> db
+    worker --> llm
+    api -. OTLP .-> recv
+    worker -. OTLP .-> recv
+    db -. OTLP .-> recv
+    llm -. "OTLP (gen_ai spans)" .-> recv
+
+    recv --> proc --> conn --> exp
+    exp -- traces --> jaeger
+    exp -- metrics --> prom
+    exp -- logs --> loki
+    jaeger --> graf
+    prom --> graf
+    loki --> graf
+
+    classDef custom fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#111;
+    classDef svc fill:#e3f2fd,stroke:#1565c0,color:#111;
+    classDef backend fill:#e8f5e9,stroke:#2e7d32,color:#111;
+    class recv,proc,conn custom;
+    class api,worker,db,llm svc;
+    class jaeger,prom,loki,graf backend;

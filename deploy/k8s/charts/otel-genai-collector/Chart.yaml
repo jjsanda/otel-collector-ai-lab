@@ -1,0 +1,13 @@
+apiVersion: v2
+name: otel-genai-collector
+description: Helm chart for the GenAI-aware OpenTelemetry Collector distribution (otelcol-genai)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - opentelemetry
+  - observability
+  - genai
+home: https://github.com/jjsanda/otel-collector-ai-lab
+maintainers:
+  - name: jjsanda

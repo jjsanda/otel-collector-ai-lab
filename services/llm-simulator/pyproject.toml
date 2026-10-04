@@ -1,0 +1,14 @@
+# Tooling configuration for the llm-simulator service.
+# Dependencies are managed via requirements*.txt (see the Dockerfile); this file
+# only carries ruff (lint/format) and pytest configuration.
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM", "C4", "RUF"]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["test_app.py"]

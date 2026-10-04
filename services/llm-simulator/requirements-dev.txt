@@ -1,0 +1,7 @@
+# Development / CI dependencies: runtime set plus lint and test tooling.
+#   uv pip install -r requirements-dev.txt   (or: pip install -r requirements-dev.txt)
+-r requirements.txt
+
+httpx==0.28.1      # required by fastapi.testclient (Starlette TestClient)
+pytest==9.1.1
+ruff==0.15.20

@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "otel-genai-collector.fullname" . }}
+  labels:
+    {{- include "otel-genai-collector.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  selector:
+    {{- include "otel-genai-collector.selectorLabels" . | nindent 4 }}
+  ports:
+    - { name: otlp-grpc, port: {{ .Values.service.ports.otlpGrpc }}, targetPort: {{ .Values.service.ports.otlpGrpc }} }
+    - { name: otlp-http, port: {{ .Values.service.ports.otlpHttp }}, targetPort: {{ .Values.service.ports.otlpHttp }} }
+    - { name: prom, port: {{ .Values.service.ports.prometheus }}, targetPort: {{ .Values.service.ports.prometheus }} }
+    - { name: genaievents, port: {{ .Values.service.ports.genaiEvents }}, targetPort: {{ .Values.service.ports.genaiEvents }} }
+    - { name: health, port: {{ .Values.service.ports.health }}, targetPort: {{ .Values.service.ports.health }} }

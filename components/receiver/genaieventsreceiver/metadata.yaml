@@ -1,0 +1,13 @@
+type: genaievents
+
+status:
+  class: receiver
+  stability:
+    beta: [traces]
+  distributions: [otelcol-genai]
+  codeowners:
+    active: [jjsanda]
+
+# Accepts a simplified GenAI-event JSON payload over HTTP and converts each
+# event into a CLIENT span following the gen_ai semantic conventions. Default
+# endpoint 0.0.0.0:8099, path /v1/genai-events.

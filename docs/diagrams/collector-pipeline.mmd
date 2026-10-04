@@ -1,0 +1,34 @@
+%% Internal pipelines of the otelcol-genai distribution.
+%% Orange = custom Go components built for this project.
+flowchart LR
+    otlp["otlp receiver"]
+    ev["genaievents*<br/>receiver"]
+
+    ml["memory_limiter"]
+    rd["genairedaction*<br/>processor"]
+    b["batch"]
+    conn["genaimetrics*<br/>connector"]
+
+    jae["otlphttp → Jaeger"]
+    lokix["otlphttp → Loki"]
+    promx["prometheus"]
+    dbg["debug"]
+
+    %% traces pipeline
+    otlp -->|traces| ml
+    ev -->|traces| ml
+    ml --> rd --> b
+    b -->|traces| jae
+    b -->|traces| conn
+    b -->|traces| dbg
+
+    %% metrics pipeline (connector output + direct OTLP metrics)
+    conn -->|metrics| promx
+    otlp -->|metrics| promx
+
+    %% logs pipeline
+    otlp -->|logs| rd
+    b -->|logs| lokix
+
+    classDef custom fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#111;
+    class ev,rd,conn custom;
